@@ -31,50 +31,59 @@ def setup_gmail_api():
     return build('gmail', 'v1', credentials=creds)
 
 # Get the first email in your inbox
-def get_first_email(service):
+def query_email_snippets(service, query = '', max_results=1):
     try:
-        results = service.users().messages().list(userId='me', labelIds=['INBOX'], maxResults=1).execute()
+        results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
         messages = results.get('messages', [])
 
         if not messages:
             print('No messages found.')
         else:
-            msg_id = messages[0]['id']
-            message = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
-            payload = message['payload']
-            headers = payload['headers']
-            subject = ''
-            sender = ''
+            for message in messages:
+                msg_id = message['id']
+                message = service.users().messages().get(userId='me', id=msg_id, format='full').execute()
 
-            for header in headers:
-                if header['name'] == 'subject':
-                    subject = header['value']
-                if header['name'] == 'From':
-                    sender = header['value']
+                payload = message['payload']
+                headers = payload['headers']
 
-            print(f"Subject: {subject}")
-            print(f"From: {sender}")
+                subject = ''
+                sender = ''
+                snippet = message['snippet']
 
-            if 'parts' in payload:
-                parts = payload['parts']
-                for part in parts:
-                    if part['mimeType'] == 'text/plain':
-                        data = part['body']['data']
-                    elif part['mimeType'] == 'text/html':
-                        data = part['body']['data']
+                for header in headers:
+                    if header['name'] == 'Subject':
+                        subject = header['value']
+                    if header['name'] == 'From':
+                        sender = header['value']
 
-                text = base64.urlsafe_b64decode(data).decode()
-                # print("\nEmail body:\n", text)
-                with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html') as f:
-                    temp_file_name = f.name
-                    f.write(text)
+                print(f"Subject: {subject}")
+                print(f"Sender: {sender}")
+                print(f"Snippet: {snippet}")
+                print("\n\n")
 
-                    # Open the temporary file in the default web browser
-                    webbrowser.open('file://' + os.path.realpath(temp_file_name))
+            #    return (subject, sender, snippet)
+
+            #     if 'parts' in payload:
+            #         parts = payload['parts']
+            #         for part in parts:
+            #             if part['mimeType'] == 'text/plain':
+            #                 data = part['body']['data']
+            #             elif part['mimeType'] == 'text/html':
+            #                 data = part['body']['data']
+
+            #         text = base64.urlsafe_b64decode(data).decode()
+            #         print("\nEmail body:\n", text)
+
+            # with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html') as f:
+            #     temp_file_name = f.name
+            #     f.write(text)
+
+            #     # Open the temporary file in the default web browser
+            #     webbrowser.open('file://' + os.path.realpath(temp_file_name))
 
     except HttpError as error:
         print(f"An error occurred: {error}")
 
 if __name__ == '__main__':
     service = setup_gmail_api()
-    get_first_email(service)
+    query_email_snippets(service, query='receipt')
