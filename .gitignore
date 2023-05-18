@@ -2,3 +2,7 @@ credentials.json
 credentials.txt
 openai-key.txt
 token.pickle
+
+/email-crawler/*
+/email-documents/*
+/testing/*

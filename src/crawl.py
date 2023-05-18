@@ -45,17 +45,21 @@ def query_email_snippets(service, query = '', max_results=1):
 
                 payload = message['payload']
                 headers = payload['headers']
+                snippet = message['snippet']
 
                 subject = ''
                 sender = ''
-                snippet = message['snippet']
+                message_id = ''
 
                 for header in headers:
                     if header['name'] == 'Subject':
                         subject = header['value']
                     if header['name'] == 'From':
                         sender = header['value']
+                    if header['name'] == 'Message-ID':
+                        message_id = header['value']
 
+                print(f"Message ID: {message_id}")
                 print(f"Subject: {subject}")
                 print(f"Sender: {sender}")
                 print(f"Snippet: {snippet}")
@@ -63,23 +67,27 @@ def query_email_snippets(service, query = '', max_results=1):
 
             #    return (subject, sender, snippet)
 
-            #     if 'parts' in payload:
-            #         parts = payload['parts']
-            #         for part in parts:
-            #             if part['mimeType'] == 'text/plain':
-            #                 data = part['body']['data']
-            #             elif part['mimeType'] == 'text/html':
-            #                 data = part['body']['data']
+                data = ''
+                if 'parts' in payload:
+                    parts = payload['parts']
+                    for part in parts:
+                        if part['mimeType'] == 'text/plain':
+                            data = part['body']['data']
+                        elif part['mimeType'] == 'text/html':
+                            data = part['body']['data']
+                else:
+                    data = payload['body']['data']
 
-            #         text = base64.urlsafe_b64decode(data).decode()
-            #         print("\nEmail body:\n", text)
+                text = base64.urlsafe_b64decode(data).decode()
 
-            # with tempfile.NamedTemporaryFile('w', delete=False, suffix='.html') as f:
-            #     temp_file_name = f.name
-            #     f.write(text)
+                filepath = 'email-documents/' + message_id + '.html'
 
-            #     # Open the temporary file in the default web browser
-            #     webbrowser.open('file://' + os.path.realpath(temp_file_name))
+                with open(filepath, 'w') as f:
+                    file_name = f.name
+                    f.write(text)
+
+                    # Open the temporary file in the default web browser
+                    # webbrowser.open('file://' + os.path.realpath(file_name))
 
     except HttpError as error:
         print(f"An error occurred: {error}")
