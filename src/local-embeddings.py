@@ -69,7 +69,7 @@ def main():
         chroma_db_impl='duckdb+parquet',
         persist_directory=persist_directory,
         anonymized_telemetry=False
-))
+    ))
     db.persist()
     db = None
 
