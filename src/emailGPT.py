@@ -7,9 +7,9 @@ from langchain.vectorstores import Chroma
 from chromadb.config import Settings
 
 embeddings_name = 'all-MiniLM-L6-v2'
-persist_directory = 'testing/persist'
+persist_directory = 'testing-cleaned/persist'
 model_n_ctx = 1024
-model_path = 'testing/models/ggml-gpt4all-j-v1.3-groovy.bin'
+model_path = 'testing/models/ggml-model-q4_0.bin'
 
 def main():
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_name)
@@ -22,8 +22,8 @@ def main():
 
     # Prepare the LLM
     callbacks = [StreamingStdOutCallbackHandler()]
-    # llm = LlamaCpp(model_path=model_path, n_ctx=model_n_ctx, callbacks=callbacks, verbose=False)
-    llm = GPT4All(model=model_path, n_ctx=model_n_ctx, backend='gptj', callbacks=callbacks, verbose=False)
+    llm = LlamaCpp(model_path=model_path, n_ctx=model_n_ctx, callbacks=callbacks, verbose=False)
+    # llm = GPT4All(model=model_path, n_ctx=model_n_ctx, backend='gptj', callbacks=callbacks, verbose=False)
     qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents=True)
 
     while True:
@@ -33,8 +33,8 @@ def main():
 
         # Get the answer from the chain
         res = qa(query)
-        print(res)
-        print()
+        #print(res)
+        print('\n\n')
 
 
 

@@ -5,7 +5,7 @@ import os
 
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.docstore.document import Document
-from langchain.document_loaders import UnstructuredHTMLLoader
+from langchain.document_loaders import UnstructuredHTMLLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
 
@@ -24,7 +24,7 @@ LOADER_MAPPING = {
     # ".odt": (UnstructuredODTLoader, {}),
     # ".pdf": (PDFMinerLoader, {}),
     # ".pptx": (UnstructuredPowerPointLoader, {}),
-    # ".txt": (TextLoader, {"encoding": "utf8"}),
+    ".txt": (TextLoader, {"encoding": "utf8"}),
     # Add more mappings for other file extensions and loaders as needed
 }
 
@@ -42,17 +42,32 @@ def load_single_document(file_path: str) -> Document:
 def load_documents(source_dir: str) -> List[Document]:
     # Loads all documents from source documents directory
     all_files = []
-    for ext in LOADER_MAPPING:
-        all_files.extend(
-            glob.glob(os.path.join(source_dir, f"**/*{ext}"), recursive=True)
-        )
-    return [load_single_document(file_path) for file_path in all_files]
+    # walk source_dir via os.walk
+    for root, dirs, files in os.walk(source_dir):
+        for file in files:
+            # get the file extension
+            ext = os.path.splitext(file)[-1].lower()
+            # if the file extension is in the LOADER_MAPPING, add it to the list of files
+            if ext in LOADER_MAPPING:
+                all_files.append(os.path.join(root, file))
+
+    return [load_single_document(file_path) for file_path in all_files] 
+
+
+# def load_documents(source_dir: str) -> List[Document]:
+#     # Loads all documents from source documents directory
+#     all_files = []
+#     for ext in LOADER_MAPPING:
+#         all_files.extend(
+#             glob.glob(os.path.join(source_dir, f"**/*{ext}"), recursive=True)
+#         )
+#     return [load_single_document(file_path) for file_path in all_files]
 
 def main():
     embeddings = HuggingFaceEmbeddings(model_name=embeddings_name)
 
-    persist_directory = 'testing/persist'
-    source_directory = 'email-documents'
+    persist_directory = 'testing-cleaned/persist'
+    source_directory = 'email-documents-cleaned'
 
     # Load documents and split in chunks
     print(f"Loading documents from {source_directory}")

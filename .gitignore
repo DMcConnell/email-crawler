@@ -4,5 +4,5 @@ openai-key.txt
 token.pickle
 
 /email-crawler/*
-/email-documents/*
-/testing/*
+/email-documents*/*
+/testing*/*

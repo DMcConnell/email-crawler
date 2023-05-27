@@ -10,6 +10,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from bs4 import BeautifulSoup
 
 # Set up the Gmail API connection
 def setup_gmail_api():
@@ -31,7 +32,7 @@ def setup_gmail_api():
     return build('gmail', 'v1', credentials=creds)
 
 # Get the first email in your inbox
-def query_email_snippets(service, query = '', max_results=1):
+def query_email_snippets(service, query = '', max_results=1, strip_html=False, base_dir='email-documents'):
     try:
         results = service.users().messages().list(userId='me', q=query, maxResults=max_results).execute()
         messages = results.get('messages', [])
@@ -79,8 +80,14 @@ def query_email_snippets(service, query = '', max_results=1):
                     data = payload['body']['data']
 
                 text = base64.urlsafe_b64decode(data).decode()
-
-                filepath = 'email-documents/' + message_id + '.html'
+                text = subject + '\n\n' + sender + '\n\n' + text
+                filepath = base_dir + '//' + message_id
+               
+                if strip_html:
+                    text = html_to_text(text)
+                    filepath = filepath + '.txt'
+                else:
+                    filepath = filepath + '.html'
 
                 with open(filepath, 'w') as f:
                     file_name = f.name
@@ -92,6 +99,37 @@ def query_email_snippets(service, query = '', max_results=1):
     except HttpError as error:
         print(f"An error occurred: {error}")
 
+
+def html_to_text(html_str):
+    html_file = tempfile.NamedTemporaryFile(mode='w+t', delete=False)
+    html_file.write(html_str)
+    html_file.close()
+
+    filepath = html_file.name
+
+    with open(filepath, 'r') as f:
+        html_content = f.read()
+
+    soup = BeautifulSoup(html_content, 'html.parser')
+
+    # kill all script and style elements
+    for script in soup(["script", "style"]):
+        script.extract()    # rip it out
+
+    # get text
+    text = soup.get_text()
+
+    # break into lines and remove leading and trailing space on each
+    lines = (line.strip() for line in text.splitlines())
+    # break multi-headlines into a line each
+    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+    # drop blank lines
+    text = '\n'.join(chunk for chunk in chunks if chunk)
+
+    return text
+
+
 if __name__ == '__main__':
     service = setup_gmail_api()
-    query_email_snippets(service, query='receipt')
+
+    query_email_snippets(service, max_results=200, strip_html=True, base_dir='email-documents-cleaned')
